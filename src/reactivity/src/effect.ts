@@ -1,21 +1,24 @@
 import { createDep } from "./dep";
 import { extend } from "../../shared/index";
 
-let activeEffect = null;
+let activeEffect = void 0;
 const targetMap = new WeakMap();
 
 // 用于依赖收集
 export class ReactiveEffect {
   active = true;
   deps = [];
-  constructor(public fn) {}
+  constructor(public fn, public scheduler?) {
+    console.log("创建 ReactiveEffect 对象");
+  }
 
   run() {
     // 执行的时候给全局的 activeEffect 赋值
     // 利用全局属性来获取当前的 effect
     activeEffect = this as any;
     // 执行用户传入的 fn
-    this.fn();
+    console.log("执行用户传入的 fn");
+    return this.fn();
   }
 
   stop() {
@@ -57,6 +60,7 @@ export function stop(runner) {
 }
 
 export function track(target, type, key) {
+  console.log(`触发 track -> target: ${target} type:${type} key:${key}`);
   // 1. 先基于 target 找到对应的 dep
   // 如果是第一次的话，那么就需要初始化
   let depsMap = targetMap.get(target);
@@ -77,8 +81,21 @@ export function track(target, type, key) {
   trackEffects(dep);
 }
 
-function trackEffects(dep) {
+export function trackEffects(dep) {
   // 用 dep 来存放所有的 effect
+  let shouldTrack = false;
+
+  // TODO
+  // 这里是一个优化点
+  // 先看看这个依赖是不是已经收集了，
+  // 已经收集的话，那么就不需要在收集一次了
+  // 可能会影响 code path change 的情况
+  // 需要每次都 cleanupEffect
+  // shouldTrack = !dep.has(activeEffect!);
+
+  // if (!shouldTrack) return;
+  if (!activeEffect) return;
+
   dep.add(activeEffect);
   (activeEffect as any).deps.push(dep);
 }
@@ -108,7 +125,11 @@ export function trigger(target, type, key) {
   triggerEffects(createDep(effects));
 }
 
-function triggerEffects(dep) {
+export function isTracking() {
+  return activeEffect !== undefined;
+}
+
+export function triggerEffects(dep) {
   // 执行收集到的所有的 effect 的 run 方法
   for (const effect of dep) {
     if (effect.scheduler) {
