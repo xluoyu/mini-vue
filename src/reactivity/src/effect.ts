@@ -2,23 +2,46 @@ import { createDep } from "./dep";
 import { extend } from "../../shared/index";
 
 let activeEffect = void 0;
+let shouldTrack = false;
 const targetMap = new WeakMap();
 
 // 用于依赖收集
 export class ReactiveEffect {
   active = true;
   deps = [];
+  public onStop?: () => void;
   constructor(public fn, public scheduler?) {
     console.log("创建 ReactiveEffect 对象");
   }
 
   run() {
+    console.log("run");
+    // 运行 run 的时候，可以控制 要不要执行后续收集依赖的一步
+    // 目前来看的话，只要执行了 fn 那么就默认执行了收集依赖
+    // 这里就需要控制了
+
+    // 是不是收集依赖的变量
+
+    // 执行 fn  但是不收集依赖
+    if (!this.active) {
+      return this.fn();
+    }
+
+    // 执行 fn  收集依赖
+    // 可以开始收集依赖了
+    shouldTrack = true;
+
     // 执行的时候给全局的 activeEffect 赋值
     // 利用全局属性来获取当前的 effect
     activeEffect = this as any;
     // 执行用户传入的 fn
     console.log("执行用户传入的 fn");
-    return this.fn();
+    const result = this.fn();
+    // 重置
+    shouldTrack = false;
+    activeEffect = undefined;
+
+    return result;
   }
 
   stop() {
@@ -26,6 +49,9 @@ export class ReactiveEffect {
       // 如果第一次执行 stop 后 active 就 false 了
       // 这是为了防止重复的调用，执行 stop 逻辑
       cleanupEffect(this);
+      if (this.onStop) {
+        this.onStop();
+      }
       this.active = false;
     }
   }
@@ -37,6 +63,7 @@ function cleanupEffect(effect) {
   effect.deps.forEach((dep) => {
     dep.delete(effect);
   });
+
   effect.deps.length = 0;
 }
 
@@ -60,6 +87,9 @@ export function stop(runner) {
 }
 
 export function track(target, type, key) {
+  if (!isTracking()) {
+    return;
+  }
   console.log(`触发 track -> target: ${target} type:${type} key:${key}`);
   // 1. 先基于 target 找到对应的 dep
   // 如果是第一次的话，那么就需要初始化
@@ -83,7 +113,6 @@ export function track(target, type, key) {
 
 export function trackEffects(dep) {
   // 用 dep 来存放所有的 effect
-  let shouldTrack = false;
 
   // TODO
   // 这里是一个优化点
@@ -92,12 +121,10 @@ export function trackEffects(dep) {
   // 可能会影响 code path change 的情况
   // 需要每次都 cleanupEffect
   // shouldTrack = !dep.has(activeEffect!);
-
-  // if (!shouldTrack) return;
-  if (!activeEffect) return;
-
-  dep.add(activeEffect);
-  (activeEffect as any).deps.push(dep);
+  if (!dep.has(activeEffect)) {
+    dep.add(activeEffect);
+    (activeEffect as any).deps.push(dep);
+  }
 }
 
 export function trigger(target, type, key) {
@@ -107,6 +134,8 @@ export function trigger(target, type, key) {
   // dep
 
   const depsMap = targetMap.get(target);
+
+  if (!depsMap) return;
 
   // 暂时只实现了 GET 类型
   // get 类型只需要取出来就可以
@@ -126,7 +155,7 @@ export function trigger(target, type, key) {
 }
 
 export function isTracking() {
-  return activeEffect !== undefined;
+  return shouldTrack && activeEffect !== undefined;
 }
 
 export function triggerEffects(dep) {

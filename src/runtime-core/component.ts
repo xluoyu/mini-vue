@@ -80,6 +80,8 @@ function setupStatefulComponent(instance) {
 
     // 3. 处理 setupResult
     handleSetupResult(instance, setupResult);
+  } else {
+    finishComponentSetup(instance);
   }
 }
 
@@ -142,7 +144,7 @@ function applyOptions() {
 
 let currentInstance = {};
 // 这个接口暴露给用户，用户可以在 setup 中获取组件实例 instance
-export function getCurrentInstance() {
+export function getCurrentInstance(): any {
   return currentInstance;
 }
 

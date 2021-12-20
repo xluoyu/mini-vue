@@ -1,71 +1,97 @@
 // 源码里面这些接口是由 runtime-dom 来实现
 // 这里先简单实现
+
+import { isOn } from "../shared";
+import { createRenderer } from "../runtime-core";
+
 // 后面也修改成和源码一样的实现
-export function hostCreateElement(type) {
-  console.log("hostCreateElement", type);
+function createElement(type) {
+  console.log("CreateElement", type);
   const element = document.createElement(type);
   return element;
 }
 
-export function hostCreateText(text) {
+function createText(text) {
   return document.createTextNode(text);
 }
 
-export function hostSetText(node, text) {
+function setText(node, text) {
   node.nodeValue = text;
 }
 
-export function hostSetElementText(el, text) {
-  console.log("hostSetElementText", el, text);
-  el.innerText = text;
+function setElementText(el, text) {
+  console.log("SetElementText", el, text);
+  el.textContent = text;
 }
 
-export function hostPatchProp(el, key, preValue, nextValue) {
+function patchProp(el, key, preValue, nextValue) {
   // preValue 之前的值
   // 为了之后 update 做准备的值
   // nextValue 当前的值
-  console.log(`hostPatchProp 设置属性:${key} 值:${nextValue}`);
+  console.log(`PatchProp 设置属性:${key} 值:${nextValue}`);
   console.log(`key: ${key} 之前的值是:${preValue}`);
 
-  switch (key) {
-    case "id":
-    case "tId":
-      if (nextValue === null || nextValue === undefined) {
-        el.removeAttribute(key);
+  if (isOn(key)) {
+    // 添加事件处理函数的时候需要注意一下
+    // 1. 添加的和删除的必须是一个函数，不然的话 删除不掉
+    //    那么就需要把之前 add 的函数给存起来，后面删除的时候需要用到
+    // 2. nextValue 有可能是匿名函数，当对比发现不一样的时候也可以通过缓存的机制来避免注册多次
+    // 存储所有的事件函数
+    const invokers = el._vei || (el._vei = {});
+    const existingInvoker = invokers[key];
+    if (nextValue && existingInvoker) {
+      // patch
+      // 直接修改函数的值即可
+      existingInvoker.value = nextValue;
+    } else {
+      const eventName = key.slice(2).toLowerCase();
+      if (nextValue) {
+        const invoker = (invokers[key] = nextValue);
+        el.addEventListener(eventName, invoker);
       } else {
-        el.setAttribute(key, nextValue);
+        el.removeEventListener(eventName, existingInvoker);
+        invokers[key] = undefined;
       }
-      break;
-    case "onClick":
-      // todo
-      // 先临时实现 click 事件
-      // 后面应该用 directive 来处理
-      // todo
-      // 需要参考 runtime-dom 的做法
-      // 这里需要额外的处理 nextValue 的值
-      // 因为 nextValue 是一个匿名函数的话，那么对比的时候，肯定2个匿名函数就不一样了
-      // 然后就会注册了2遍事件监听
-      if (preValue) {
-        // 先临时 reset
-        el.removeEventListener("click", preValue);
-      }
-      el.addEventListener("click", nextValue);
-      break;
-  }
-}
-
-export function hostInsert(child, parent, anchor = null) {
-  console.log("hostInsert");
-  if (anchor) {
-    parent.insertBefore(child, anchor);
+    }
   } else {
-    parent.appendChild(child);
+    if (nextValue === null || nextValue === "") {
+      el.removeAttribute(key);
+    } else {
+      el.setAttribute(key, nextValue);
+    }
   }
 }
 
-export function hostRemove(child) {
+function insert(child, parent, anchor = null) {
+  console.log("Insert");
+  parent.insertBefore(child, anchor);
+}
+
+function remove(child) {
   const parent = child.parentNode;
   if (parent) {
     parent.removeChild(child);
   }
 }
+
+let renderer;
+
+function ensureRenderer() {
+  // 如果 renderer 有值的话，那么以后都不会初始化了
+  return (
+    renderer ||
+    (renderer = createRenderer({
+      createElement,
+      createText,
+      setText,
+      setElementText,
+      patchProp,
+      insert,
+      remove,
+    }))
+  );
+}
+
+export const createApp = (...args) => {
+  return ensureRenderer().createApp(...args);
+};

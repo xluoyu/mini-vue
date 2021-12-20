@@ -1,5 +1,5 @@
 import { reactive } from "../src/reactive";
-import { effect,stop } from "../src/effect";
+import { effect, stop } from "../src/effect";
 
 describe("effect", () => {
   it("should run the passed function once (wrapped by a effect)", () => {
@@ -98,11 +98,22 @@ describe("effect", () => {
     obj.prop = 2;
     expect(dummy).toBe(2);
     stop(runner);
-    obj.prop = 3;
+    // obj.prop = 3
+    obj.prop++;
     expect(dummy).toBe(2);
 
     // stopped effect should still be manually callable
-    // runner();
-    // expect(dummy).toBe(3);
+    runner();
+    expect(dummy).toBe(3);
+  });
+
+  it("events: onStop", () => {
+    const onStop = jest.fn();
+    const runner = effect(() => {}, {
+      onStop,
+    });
+
+    stop(runner);
+    expect(onStop).toHaveBeenCalled();
   });
 });

@@ -11,6 +11,8 @@ import { isObject } from "../../shared/index";
 
 const get = createGetter();
 const set = createSetter();
+const readonlyGet = createGetter(true);
+const shallowReadonlyGet = createGetter(true, true);
 
 function createGetter(isReadonly = false, shallow = false) {
   return function get(target, key, receiver) {
@@ -37,6 +39,15 @@ function createGetter(isReadonly = false, shallow = false) {
 
     const res = Reflect.get(target, key, receiver);
 
+    // 问题：为什么是 readonly 的时候不做依赖收集呢
+    // readonly 的话，是不可以被 set 的， 那不可以被 set 就意味着不会触发 trigger
+    // 所有就没有收集依赖的必要了
+
+    if (!isReadonly) {
+      // 在触发 get 的时候进行依赖收集
+      track(target, "get", key);
+    }
+
     if (shallow) {
       return res;
     }
@@ -48,13 +59,6 @@ function createGetter(isReadonly = false, shallow = false) {
       return isReadonly ? readonly(res) : reactive(res);
     }
 
-    // 问题：为什么是 readonly 的时候不做依赖收集呢
-    // readonly 的话，是不可以被 set 的， 那不可以被 set 就意味着不会触发 trigger
-    // 所有就没有收集依赖的必要了
-    if (!isReadonly) {
-      // 在触发 get 的时候进行依赖收集
-      track(target, "get", key);
-    }
     return res;
   };
 }
@@ -71,7 +75,7 @@ function createSetter() {
 }
 
 export const readonlyHandlers = {
-  get: createGetter(true),
+  get: readonlyGet,
   set(target, key) {
     // readonly 的响应式对象不可以修改值
     console.warn(
@@ -88,7 +92,7 @@ export const mutableHandlers = {
 };
 
 export const shallowReadonlyHandlers = {
-  get: createGetter(true, true),
+  get: shallowReadonlyGet,
   set(target, key) {
     // readonly 的响应式对象不可以修改值
     console.warn(

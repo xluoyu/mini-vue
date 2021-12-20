@@ -2,29 +2,17 @@
 
 ## mini-vue
 
-实现最简 vue3 模型，用于深入学习 vue3
+实现最简 vue3 模型，用于深入学习 vue3， 让你更轻松的理解 vue3 的核心逻辑
 
 ## Usage
 
 [B 站](https://www.bilibili.com/video/BV1Zy4y1J73E) 提供了视频讲解使用方式
 
-> 可关注我得[b 站](https://space.bilibili.com/175301983)，会不定期直播源码解读
+想看更多关于 mini-vue 的课程以及获取流程脑图源文件的同学可以加我 vx 哦
 
-## 探讨和获取脑图资源
+vx：cuixr1314
 
-想要资源和入群的话，加我vx。
-
-加我的公众号：阿崔 cxr
-
-公众号回复关键字：vx
-
-我拉你进群（群满了）
-
-## 服务
-
-提供一对一视频教学服务，手把手带你一起看 mini-vue 源码
-
-> 可加公众号沟通
+备注一下： github mini-vue
 
 ## Why
 
@@ -54,6 +42,7 @@
 - [x] 支持 provide/inject
 - [x] 支持最基础的 slots
 - [x] 支持 Text 类型节点
+- [x] 支持 $el api
 
 
 #### reactivity
@@ -76,6 +65,9 @@
 - [x] 支持 shallowReadonly
 - [x] 支持 proxyRefs
 
+### runtime-dom
+- [x] 支持 custom renderer 
+
 ### build
 
 ```shell
@@ -91,12 +83,11 @@ yarn build
 ### 初始化
 
 #### 流程图
+![初始化流程图](https://user-images.githubusercontent.com/12064746/138114565-3e0eecbb-7fd0-4203-bf36-5e5fd8003ce0.png)
 
-![初始化流程图](https://user-gold-cdn.xitu.io/2020/7/6/1732311ea8a9142a?w=1724&h=762&f=png&s=493353)
 
 #### 关键函数调用图
 
-![关键函数调用图1](https://user-gold-cdn.xitu.io/2020/6/22/172dc07fc42b7d2c?w=1342&h=144&f=png&s=54200)
 
 ![关键函数调用图2](https://user-gold-cdn.xitu.io/2020/6/22/172dc08840e25b42?w=1816&h=934&f=png&s=550722)
 
@@ -106,10 +97,12 @@ yarn build
 
 #### 流程图
 
-![update流程图](https://user-gold-cdn.xitu.io/2020/6/23/172e19b5cefba34e?w=3200&h=800&f=png&s=540515)
+![image](https://user-images.githubusercontent.com/12064746/138115157-1f4fb8a2-7e60-412d-96de-12e68eb0288c.png)
 
 #### 关键函数调用图
 
-![update关键函数调用图](https://user-gold-cdn.xitu.io/2020/6/23/172e19d2d42464aa?w=3300&h=1006&f=png&s=739008)
+![image](https://user-images.githubusercontent.com/12064746/138114969-9139e4af-b2df-41b2-a5d9-069d8b41903c.png)
+
 
 > 可以基于函数名快速搜索到源码内容
+
